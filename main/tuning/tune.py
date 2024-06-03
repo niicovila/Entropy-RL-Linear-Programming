@@ -55,23 +55,23 @@ config_ray = {
                                "kaiming_uniform", 
                                "sparse"]),
     # Architecture
-    "policy_activation": "Tanh",
+    "policy_activation": ["Tanh", "ReLU", "Sigmoid", "ELU"],
     "num_hidden_layers": 2,
-    "hidden_size": 128,
+    "hidden_size": [16, 32, 64, 128, 256, 512],
     "actor_last_layer_std": 0.01,
 
-    "q_activation": "Tanh",
-    "q_num_hidden_layers": 4,
-    "q_hidden_size": 128,
+    "q_activation": ["Tanh", "ReLU", "Sigmoid", "ELU"],
+    "q_num_hidden_layers": [1, 2, 4, 8],
+    "q_hidden_size": [16, 32, 64, 128, 256, 512],
     "q_last_layer_std": 1.0,
 
     "average_critics": tune.choice([True, False]),
     "use_policy": tune.choice([True, False]),
 
     "parametrized_sampler" : tune.choice([True, False]),
-    "sampler_activation": "Tanh",
-    "sampler_num_hidden_layers": 2,
-    "sampler_hidden_size": 128,
+    "sampler_activation": ["Tanh", "ReLU", "Sigmoid", "ELU"],
+    "sampler_num_hidden_layers": [1, 2, 4, 8],
+    "sampler_hidden_size": [16, 32, 64, 128, 256, 512],
     "sampler_last_layer_std": 0.1,
 
     # Optimization
