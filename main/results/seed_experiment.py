@@ -1,8 +1,8 @@
 import os
 import sys
 import pandas as pd
-from main.algorithms.classic.elbe.train_func_elbe import tune_elbe
-from main.algorithms.classic.saddle.train_func_saddle import tune_saddle
+from algorithms import tune_elbe
+from algorithms import tune_saddle
 import matplotlib.pyplot as plt
 import numpy as np
 import time

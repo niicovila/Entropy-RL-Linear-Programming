@@ -9,8 +9,9 @@ import pandas as pd
 import time
 import multiprocessing
 from multiprocessing import Pool
-from train_func_saddle import tune_saddle
+from algorithms import tune_saddle
 
+config_elbe = {}
 def create_samples(n=10):
     samples = []
     for i in range(n):

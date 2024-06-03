@@ -10,8 +10,8 @@ from ray.tune.search.optuna import OptunaSearch
 from ray.tune.schedulers import AsyncHyperBandScheduler
 from ray.tune.search.basic_variant import BasicVariantGenerator
 
-from main.algorithms.classic.elbe.train_func_elbe import tune_elbe
-from main.algorithms.classic.saddle.train_func_saddle import tune_saddle
+from algorithms import tune_elbe
+from algorithms import tune_saddle
 
 
 config_ray = {

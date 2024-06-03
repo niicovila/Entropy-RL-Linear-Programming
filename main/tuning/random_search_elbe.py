@@ -9,7 +9,7 @@ import pandas as pd
 import time
 import multiprocessing
 from multiprocessing import Pool
-from train_func_elbe import tune_elbe
+from algorithms import tune_elbe
 
 config_elbe = {
     "exp_name": "QREPS",
