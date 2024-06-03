@@ -8,7 +8,7 @@ import pandas as pd
 from torch.utils.tensorboard import SummaryWriter
 from ray import train
 from ..utils import make_env, QNetwork, QREPSPolicy
-from ..common_utils import nll_loss, kl_loss
+from ..common_utils import nll_loss, kl_loss, Sampler, ExponentiatedGradientSampler
 
 import logging
 FORMAT = "[%(asctime)s]: %(message)s"
@@ -18,7 +18,6 @@ SEED_OFFSET = 1
 def tune_saddle(config):
     import torch
     import torch.optim as optim
-    
     args = argparse.Namespace(**config)
     if "__trial_index__" in config: args.seed = config["__trial_index__"] + SEED_OFFSET
     run_name = f"{args.env_id}__{args.exp_name}__{args.seed}__{int(time.time())}"

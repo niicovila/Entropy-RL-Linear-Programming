@@ -13,7 +13,7 @@ from stable_baselines3.common.atari_wrappers import (  # isort:skip
     NoopResetEnv,
 )
 from ray import train
-from utils_atari import QREPSAgent
+from main.algorithms.qreps.atari.utils_atari import QREPSAgent
 from ..classic import Sampler, ExponentiatedGradientSampler, nll_loss, kl_loss
 import logging
 
