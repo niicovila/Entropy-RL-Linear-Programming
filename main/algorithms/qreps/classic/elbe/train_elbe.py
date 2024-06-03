@@ -1,4 +1,3 @@
-# docs and experiment results can be found at https://docs.cleanrl.dev/rl-algorithms/dqn/#dqnpy
 import argparse 
 from copy import deepcopy
 import random
@@ -8,8 +7,8 @@ import numpy as np
 import pandas as pd
 from torch.utils.tensorboard import SummaryWriter
 from ray import train
-from main.algorithms.classic.utils import make_env, QNetwork, QREPSPolicy
-from main.algorithms.classic.common_utils import nll_loss
+from ..utils import make_env, QNetwork, QREPSPolicy
+from ..common_utils import nll_loss
 import logging
 
 FORMAT = "[%(asctime)s]: %(message)s"

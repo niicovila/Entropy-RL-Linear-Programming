@@ -1,4 +1,3 @@
-# docs and experiment results can be found at https://docs.cleanrl.dev/rl-algorithms/dqn/#dqnpy
 import argparse
 from copy import deepcopy
 import random
@@ -15,7 +14,7 @@ from stable_baselines3.common.atari_wrappers import (  # isort:skip
 )
 from ray import train
 from utils_atari import QREPSAgent
-from algorithms.classic.common_utils import nll_loss, kl_loss
+from ..classic.common_utils import nll_loss, kl_loss
 import logging
 
 FORMAT = "[%(asctime)s]: %(message)s"

@@ -48,7 +48,6 @@ def plot_policy_with_heatmap(policy, value_function, env_image, M=5):
 
     # Show the plot
     plt.show()
-## Utility functions/classes
 
 def plot_policy(policy, save_dir, env_image, M):
 
