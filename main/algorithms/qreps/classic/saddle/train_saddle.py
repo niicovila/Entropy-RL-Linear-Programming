@@ -8,7 +8,7 @@ import pandas as pd
 from torch.utils.tensorboard import SummaryWriter
 from ray import train
 from ..utils import make_env, QNetwork, QREPSPolicy
-from ..common_utils import nll_loss, kl_loss, Sampler, ExponentiatedGradientSampler
+from ..common_utils import nll_loss, Sampler, ExponentiatedGradientSampler
 
 import logging
 FORMAT = "[%(asctime)s]: %(message)s"

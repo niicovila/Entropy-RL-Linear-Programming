@@ -115,29 +115,3 @@ class QREPSPolicy(nn.Module):
         log_prob = F.log_softmax(logits, dim=1)
         action_log_prob = policy_dist.log_prob(action)
         return action, action_log_prob, log_prob, action_probs
-    
-class BestResponseSampler:
-    def __init__(self, N, device, eta, beta=None):
-        self.n = N
-        self.eta = eta
-
-        self.z = torch.ones((self.n,)) / N
-
-        self.prob_dist = Categorical(self.z)
-        self.device = device
-
-    def reset(self):
-        self.h = torch.ones((self.n,))
-        self.z = torch.ones((self.n,))
-        self.prob_dist = Categorical(torch.softmax(torch.ones((self.n,)), 0))
-                                     
-    def probs(self):
-        return self.prob_dist.probs.to(self.device)
-    
-    def update(self, bellman):
-        t = self.eta * bellman
-        t = torch.clamp(t, -50, 50)
-        self.z = self.probs() * torch.exp(t)
-        self.z = torch.clamp(self.z / (torch.sum(self.z + 1e-8)), min=1e-8, max=1.0)
-        self.prob_dist = Categorical(self.z)
-

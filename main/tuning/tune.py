@@ -95,7 +95,6 @@ config_ray = {
     "num_steps": 0,
 }
 
-
 config_elbe = {
     "exp_name": "QREPS",
     "seed": 1,
@@ -172,9 +171,8 @@ config_elbe = {
 
 if "__main__" == __name__:
 
-    # num_cpus = int(sys.argv[1])
-    # ray.init(address=os.environ['ip_head'])
-    ray.init()
+    num_cpus = int(sys.argv[1])
+    ray.init(address=os.environ['ip_head'])
     num_cpus = 3
     current_dir = os.getcwd()
     num_samples = 512
