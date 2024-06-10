@@ -1,4 +1,5 @@
 from copy import deepcopy
+import json
 import os
 import random
 import time
@@ -16,22 +17,18 @@ from torch.distributions import Categorical
 from torch.utils.tensorboard import SummaryWriter
 
 def layer_init(layer, args, gain_ort=np.sqrt(2), bias_const=0.0, gain=1):
-
     if args.layer_init == "orthogonal_gain":
         torch.nn.init.orthogonal_(layer.weight, gain_ort)
     elif args.layer_init == "orthogonal":
         torch.nn.init.orthogonal_(layer.weight, gain)
-
     elif args.layer_init == "xavier_normal":
         torch.nn.init.xavier_normal_(layer.weight, gain)
     elif args.layer_init == "xavier_uniform":
         torch.nn.init.xavier_uniform_(layer.weight, gain)
-
     elif args.layer_init == "kaiming_normal":
         torch.nn.init.kaiming_normal_(layer.weight)
     elif args.layer_init == "kaiming_uniform":
         torch.nn.init.kaiming_uniform_(layer.weight)
-
     elif args.layer_init == "sparse":
         torch.nn.init.sparse_(layer.weight, sparsity=0.1)
     else:
@@ -299,10 +296,17 @@ class Args:
     num_steps: int = 0
     """the number of steps (computed in runtime)"""
 
+def load_args_from_json(filepath: str):
+    # Read the JSON string from the file
+    with open(filepath, 'r') as f:
+        json_string = f.read()
+    args_dict = json.loads(json_string)
+    return Args(**args_dict)
 
 if __name__ == "__main__":
     start_time = time.time()
-    args = tyro.cli(Args)
+    config_filepath = '../configs/config_saddle.json'
+    args = load_args_from_json(config_filepath)
     run_name = f"{args.env_id}__{args.exp_name}__{args.seed}__{int(time.time())}"
     args.minibatch_size = args.total_iterations // args.num_minibatches
     args.num_iterations = args.total_timesteps // args.total_iterations
@@ -373,7 +377,9 @@ if __name__ == "__main__":
     dones = torch.zeros((args.num_steps, args.num_envs)).to(device)
     logprobs = torch.zeros((args.num_steps, args.num_envs, envs.single_action_space.n)).to(device)
     next_observations = torch.zeros((args.num_steps, args.num_envs) + envs.single_observation_space.shape).to(device)  # Added this line
-    
+    values_hist = torch.zeros((args.num_steps, args.num_envs)).to(device)
+    qs = torch.zeros((args.num_steps, args.num_envs)).to(device)
+
     # TRY NOT TO MODIFY: start the game
     global_step = 0
     next_obs, _ = envs.reset(seed=args.seed)
@@ -402,6 +408,10 @@ if __name__ == "__main__":
             # ALGO LOGIC: action logic
             with torch.no_grad():        
                 action, _, logprob, _ = actor.get_action(next_obs)
+                if args.gae:
+                    q, value = qf.get_values(next_obs, action)
+                    qs[step] = q
+                    values_hist[step] = value
 
             actions[step] = action
             logprobs[step] = logprob
@@ -426,6 +436,19 @@ if __name__ == "__main__":
         if args.save_learning_curve and len(mean_reward) > 0: 
             rewards_df = rewards_df._append({"Step": global_step, "Reward": np.mean(mean_reward)}, ignore_index=True)
 
+        if args.gae:
+            # bootstrap value if not done
+            with torch.no_grad():
+                next_value = qf.get_values(next_obs)[1]
+                advantages = torch.zeros_like(rewards).to(device)
+                lastgaelam = 0
+                for t in reversed(range(args.num_steps)):
+                    nextnonterminal = 1.0 - dones[t]
+                    nextvalues = values_hist[t + 1] if t + 1 < args.num_steps else next_value
+                    delta = rewards[t] + args.gamma * nextvalues * nextnonterminal - qs[t]
+                    advantages[t] = lastgaelam = delta + args.gamma * args.gae_lambda * nextnonterminal * lastgaelam
+                returns = advantages + qs
+
         b_obs = obs.reshape((-1,) + envs.single_observation_space.shape)
         b_next_obs = next_observations.reshape((-1,) + envs.single_observation_space.shape)
         b_actions = actions.reshape((-1,) + envs.single_action_space.shape)
@@ -433,6 +456,9 @@ if __name__ == "__main__":
         b_rewards = rewards.flatten()
         b_dones = dones.flatten()
         b_inds = np.arange(args.total_iterations)
+        if args.gae:
+            b_advantages = advantages.reshape(-1)
+            b_returns = returns.reshape(-1)
 
         weights_after_each_epoch = []
 
@@ -457,14 +483,7 @@ if __name__ == "__main__":
                     delta = b_rewards[mb_inds].squeeze() + args.gamma * qf_target.get_values(b_next_obs[mb_inds], policy=actor)[1].detach() * (1 - b_dones[mb_inds].squeeze()) - q        
                 
                 elif args.gae:
-                    delta = torch.zeros_like(b_rewards[mb_inds]).to(device)
-                    lastgaelam = 0
-                    for t in reversed(range(args.minibatch_size)):
-                        nextnonterminal = 1.0 - b_dones[mb_inds][t]
-                        nextvalues = values_next[t]
-                        delta_t = b_rewards[mb_inds][t] + args.gamma * nextvalues * nextnonterminal - q[t]
-                        delta[t] = lastgaelam = delta_t + args.gamma * args.gae_lambda * nextnonterminal * lastgaelam
-                    returns = delta + q
+                    delta = b_returns[mb_inds] - q
 
                 else: delta = b_rewards[mb_inds].squeeze() + args.gamma * values_next * (1 - b_dones[mb_inds].squeeze()) - q
                 if args.normalize_delta: delta = (delta - delta.mean()) / (delta.std() + 1e-9)
@@ -488,19 +507,28 @@ if __name__ == "__main__":
 
                 else: sampler.update(bellman)
 
+
                 if args.use_kl_loss: 
-                    _, _, newlogprob, probs = actor.get_action(b_obs[mb_inds])
                     with torch.no_grad():
                         q_state_action, val = qf.get_values(b_obs[mb_inds], policy=actor)
-                        adv = q_state_action - val.unsqueeze(1)
-                    
-                    if args.normalize_delta: adv = (adv - adv.mean()) / (adv.std() + 1e-8)
-                    actor_loss = torch.mean(probs * (alpha * (newlogprob-b_logprobs[mb_inds].detach()) - adv))
+                    _, _, newlogprob, probs = actor.get_action(b_obs[mb_inds])
 
-                else: 
-                    q, values = qf.get_values(b_obs[mb_inds], b_actions[mb_inds])
-                    advantadge = q - values
+                    if args.gae:
+                        advantadge = q_state_action - b_returns[mb_inds].unsqueeze(1)
+                    else:     
+                        advantadge = q_state_action - val.unsqueeze(1)
+                    
                     if args.normalize_delta: advantadge = (advantadge - advantadge.mean()) / (advantadge.std() + 1e-8)
+                    actor_loss = torch.mean(probs * (alpha * (newlogprob-b_logprobs[mb_inds].detach()) - advantadge))
+
+                else:
+                    if args.gae:
+                        if args.normalize_delta: advantadge = (b_advantages[mb_inds] - b_advantages[mb_inds].mean()) / (b_advantages[mb_inds].std() + 1e-8)
+                        else: advantadge = b_advantages[mb_inds]
+                    else:
+                        q, values = qf.get_values(b_obs[mb_inds], b_actions[mb_inds])
+                        advantadge = q - values
+                        if args.normalize_delta: advantadge = (advantadge - advantadge.mean()) / (advantadge.std() + 1e-8)
 
                     weights = torch.clamp(advantadge / alpha, -50, 50)
                     _, log_likes, _, _ = actor.get_action(b_obs[mb_inds], b_actions[mb_inds])
@@ -525,4 +553,4 @@ if __name__ == "__main__":
     envs.close()
     writer.close()
     if args.save_learning_curve: 
-        rewards_df.to_csv(f"rewards/{run_name}.csv", index=False)
+        rewards_df.to_csv(f"./runs/{run_name}/rewards.csv", index=False)

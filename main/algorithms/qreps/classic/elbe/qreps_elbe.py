@@ -1,4 +1,5 @@
 from copy import deepcopy
+import json
 import os
 import random
 import time
@@ -15,7 +16,6 @@ import tyro
 from torch.distributions import Categorical
 from torch.utils.tensorboard import SummaryWriter
 
-Q_HIST = []
 @dataclass
 class Args:
     exp_name: str = os.path.basename(__file__)[: -len(".py")]
@@ -38,28 +38,28 @@ class Args:
     """if toggled, the learning curve will be saved"""
 
     # Dynamics settings
-    env_id: str = "CartPole-v1"
+    env_id: str = "Acrobot-v1"
     """the id of the environment"""
     total_timesteps: int = 100000
     """total timesteps of the experiments"""
-    num_envs: int = 16
+    num_envs: int = 64
     """the number of parallel game environments"""
-    total_iterations: int = 512
+    total_iterations: int = 2048
     """the number of steps to run in each environment per policy rollout"""
     gamma: float = 0.99
     """the discount factor gamma"""
-    update_epochs: int = 100
+    update_epochs: int = 50
     """the number of epochs for the policy and value networks"""
-    num_minibatches: int = 8
+    num_minibatches: int = 64
     """the number of minibatches to train the policy and value networks"""
 
-    policy_lr: float = 1e-3
+    policy_lr: float = 3e-5
     """the learning rate of the policy network optimizer"""
     q_lr: float = 2.5e-4
     """the learning rate of the Q network network optimizer"""
 
     # Regularization
-    alpha: float = 2.0
+    alpha: float = 12.0
     """Entropy regularization coefficient."""
     eta = None
     """coefficient for the kl reg"""
@@ -67,36 +67,38 @@ class Args:
     # Policy Network params
     policy_activation: str = "Tanh"
     """the activation function of the policy network"""
-    hidden_size: int = 128
+    hidden_size: int = 64
     """the hidden size of the policy network"""
     num_hidden_layers: int = 2
     """the number of hidden layers of the policy network"""
-    actor_last_layer_std: float = 0.01
+    actor_last_layer_std: float = 1.0
     """the standard deviation of the last layer of the Q network"""
 
     # Q Network params
     q_activation: str = "Tanh"
     """the activation function of the Q network"""
-    q_hidden_size: int = 128
+    q_hidden_size: int = 64
     """the hidden size of the Q network"""
-    q_num_hidden_layers: int = 4
+    q_num_hidden_layers: int = 1
     """the number of hidden layers of the Q network"""
     q_last_layer_std: float = 1.0
     """the standard deviation of the last layer of the Q network"""
 
     # Optimizer params
-    q_optimizer: str = "Adam"
+    q_optimizer: str = "RMSprop"
     """the optimizer of the Q network"""
-    actor_optimizer: str = "Adam"
+    actor_optimizer: str = "RMSprop"
     """the optimizer of the policy network"""
     eps: float = 1e-8
     """the epsilon value for the optimizer"""
 
     # Options
-    target_network: bool = False
+    target_network: bool = True
     """if toggled, the target network will be used"""
-    target_network_frequency: int = 2
+    target_network_frequency: int = 32
     """the frequency of updating the target network"""
+    tau: float = 1.0
+    """the soft update coefficient of the target network"""
     average_critics: bool = False
     """if toggled, the critics will be averaged"""
     use_kl_loss: bool = False
@@ -105,7 +107,7 @@ class Args:
     """if toggled, the learning rate will decrease linearly"""
     normalize_delta: bool = False
     """if toggled, the delta will be normalized"""
-    layer_init: str = "xavier_uniform"
+    layer_init: str = "kaiming_uniform"
     """the initialization method of the layers"""
     use_policy: bool = True
     """if toggled, the policy will be used in the Q function"""
@@ -122,25 +124,25 @@ class Args:
     num_steps: int = 0
     """the number of steps (computed in runtime)"""
 
-
+def load_args_from_json(filepath: str):
+    with open(filepath, 'r') as f:
+        json_string = f.read()
+    args_dict = json.loads(json_string)
+    return Args(**args_dict)
 
 def layer_init(layer, args, gain_ort=np.sqrt(2), bias_const=0.0, gain=1):
-
     if args.layer_init == "orthogonal_gain":
         torch.nn.init.orthogonal_(layer.weight, gain_ort)
     elif args.layer_init == "orthogonal":
         torch.nn.init.orthogonal_(layer.weight, gain)
-
     elif args.layer_init == "xavier_normal":
         torch.nn.init.xavier_normal_(layer.weight, gain)
     elif args.layer_init == "xavier_uniform":
         torch.nn.init.xavier_uniform_(layer.weight, gain)
-
     elif args.layer_init == "kaiming_normal":
         torch.nn.init.kaiming_normal_(layer.weight)
     elif args.layer_init == "kaiming_uniform":
         torch.nn.init.kaiming_uniform_(layer.weight)
-
     elif args.layer_init == "sparse":
         torch.nn.init.sparse_(layer.weight, sparsity=0.1)
     else:
@@ -233,12 +235,11 @@ class QREPSPolicy(nn.Module):
         log_prob = F.log_softmax(logits, dim=1)
         action_log_prob = policy_dist.log_prob(action)
         return action, action_log_prob, log_prob, action_probs
-    
-   
 
 if __name__ == "__main__":
     start_time = time.time()    
-    args = tyro.cli(Args)
+    config_filepath = '../configs/config_elbe.json'
+    args = load_args_from_json(config_filepath)
     run_name = f"{args.env_id}__{args.exp_name}__{args.seed}__{int(time.time())}"
     args.minibatch_size = args.total_iterations // args.num_minibatches
     args.num_iterations = args.total_timesteps // args.total_iterations
@@ -310,7 +311,9 @@ if __name__ == "__main__":
     dones = torch.zeros((args.num_steps, args.num_envs)).to(device)
     logprobs = torch.zeros((args.num_steps, args.num_envs, envs.single_action_space.n)).to(device)
     next_observations = torch.zeros((args.num_steps, args.num_envs) + envs.single_observation_space.shape).to(device)  # Added this line
-    
+    values_hist = torch.zeros((args.num_steps, args.num_envs)).to(device)
+    qs = torch.zeros((args.num_steps, args.num_envs)).to(device)
+
     # TRY NOT TO MODIFY: start the game
     global_step = 0
     next_obs, _ = envs.reset(seed=args.seed)
@@ -337,6 +340,10 @@ if __name__ == "__main__":
             # ALGO LOGIC: action logic
             with torch.no_grad():        
                 action, _, logprob, _ = actor.get_action(next_obs)
+                if args.gae:
+                    q, value = qf.get_values(next_obs, action)
+                    qs[step] = q
+                    values_hist[step] = value
 
             actions[step] = action
             logprobs[step] = logprob
@@ -364,14 +371,30 @@ if __name__ == "__main__":
             print(f'Iteration: {global_step}, Reward: {np.mean(reward_iteration)}')
         if len(reward_iteration) >0: full_rewards.append(np.mean(reward_iteration))
         
+        if args.gae:
+            # bootstrap value if not done
+            with torch.no_grad():
+                next_value = qf.get_values(next_obs)[1]
+                advantages = torch.zeros_like(rewards).to(device)
+                lastgaelam = 0
+                for t in reversed(range(args.num_steps)):
+                    nextnonterminal = 1.0 - dones[t]
+                    nextvalues = values_hist[t + 1] if t + 1 < args.num_steps else next_value
+                    delta = rewards[t] + args.gamma * nextvalues * nextnonterminal - qs[t]
+                    advantages[t] = lastgaelam = delta + args.gamma * args.gae_lambda * nextnonterminal * lastgaelam
+                returns = advantages + qs
+
         b_obs = obs.reshape((-1,) + envs.single_observation_space.shape)
         b_next_obs = next_observations.reshape((-1,) + envs.single_observation_space.shape)
         b_actions = actions.reshape((-1,) + envs.single_action_space.shape)
         b_logprobs = logprobs.reshape((-1, envs.single_action_space.n))
-
         b_rewards = rewards.flatten()
         b_dones = dones.flatten()
         b_inds = np.arange(args.total_iterations)
+        if args.gae:
+            b_advantages = advantages.reshape(-1)
+            b_returns = returns.reshape(-1)
+
         weights_after_each_epoch = []
 
         for epoch in range(args.update_epochs):
@@ -387,14 +410,7 @@ if __name__ == "__main__":
                         delta = b_rewards[mb_inds].squeeze() + args.gamma * qf_target.get_values(b_next_obs[mb_inds], policy=actor)[1].detach() * (1 - b_dones[mb_inds].squeeze()) - q        
                         
                     elif args.gae:
-                        delta = torch.zeros_like(b_rewards[mb_inds]).to(device)
-                        lastgaelam = 0
-                        for t in reversed(range(args.minibatch_size)):
-                            nextnonterminal = 1.0 - b_dones[mb_inds][t]
-                            nextvalues = values_next[t]
-                            delta_t = b_rewards[mb_inds][t] + args.gamma * nextvalues * nextnonterminal - q[t]
-                            delta[t] = lastgaelam = delta_t + args.gamma * args.gae_lambda * nextnonterminal * lastgaelam
-                        returns = delta + q
+                        delta = b_returns[mb_inds] - q
                     
                     else: delta = b_rewards[mb_inds].squeeze() + args.gamma * values_next * (1 - b_dones[mb_inds].squeeze()) - q
 
@@ -405,18 +421,26 @@ if __name__ == "__main__":
                     q_optimizer.step()
 
                     if args.use_kl_loss: 
-                        _, _, newlogprob, probs = actor.get_action(b_obs[mb_inds])
                         with torch.no_grad():
                             q_state_action, val = qf.get_values(b_obs[mb_inds], policy=actor)
-                            adv = q_state_action - val.unsqueeze(1)
-                        
-                        if args.normalize_delta: adv = (adv - adv.mean()) / (adv.std() + 1e-8)
-                        actor_loss = torch.mean(probs * (alpha * (newlogprob-b_logprobs[mb_inds].detach()) - adv))
+                        _, _, newlogprob, probs = actor.get_action(b_obs[mb_inds])
 
-                    else: 
-                        q, values = qf.get_values(b_obs[mb_inds], b_actions[mb_inds])
-                        advantadge = q - values
+                        if args.gae:
+                            advantadge = q_state_action - b_returns[mb_inds].unsqueeze(1)
+                        else:     
+                            advantadge = q_state_action - val.unsqueeze(1)
+                        
                         if args.normalize_delta: advantadge = (advantadge - advantadge.mean()) / (advantadge.std() + 1e-8)
+                        actor_loss = torch.mean(probs * (alpha * (newlogprob-b_logprobs[mb_inds].detach()) - advantadge))
+
+                    else:
+                        if args.gae:
+                            if args.normalize_delta: advantadge = (b_advantages[mb_inds] - b_advantages[mb_inds].mean()) / (b_advantages[mb_inds].std() + 1e-8)
+                            else: advantadge = b_advantages[mb_inds]
+                        else:
+                            q, values = qf.get_values(b_obs[mb_inds], b_actions[mb_inds])
+                            advantadge = q - values
+                            if args.normalize_delta: advantadge = (advantadge - advantadge.mean()) / (advantadge.std() + 1e-8)
 
                         weights = torch.clamp(advantadge / alpha, -50, 50)
                         _, log_likes, _, _ = actor.get_action(b_obs[mb_inds], b_actions[mb_inds])
@@ -440,8 +464,6 @@ if __name__ == "__main__":
     envs.close()
     writer.close()
     if args.save_learning_curve: 
-        rewards_df.to_csv(f"runs/{run_name}/rewards.csv", index=False)
-
-
+        rewards_df.to_csv(f"./runs/{run_name}/rewards.csv", index=False)
 
     print(f"running time: {time.time()-start_time}")
