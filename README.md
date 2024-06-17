@@ -59,7 +59,7 @@ poetry run python algos/qreps/qreps_main.py \
       <img src="https://github.com/niicovila/Entropy-RL-Linear-Programming/assets/76247144/a908b048-765a-4ef8-a833-30dc54ce48d4" alt="Video 1" style="width:100%">
     </td>
     <td>
-      <img src="https://github.com/niicovila/Entropy-RL-Linear-Programming/assets/76247144/a9265891-4e8c-4d21-8b05-d527e2d7ae9f.gif" alt="Video 2" style="width:100%">
+      <img src="https://github.com/niicovila/Entropy-RL-Linear-Programming/assets/76247144/a9265891-4e8c-4d21-8b05-d527e2d7ae9f" alt="Video 2" style="width:100%">
     </td>
     <td>
       <img src="https://github.com/niicovila/Entropy-RL-Linear-Programming/assets/76247144/87b9ceaf-9bfa-4914-9e12-945478d5066c" alt="Video 3" style="width:100%">
