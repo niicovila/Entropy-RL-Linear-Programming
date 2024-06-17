@@ -8,9 +8,7 @@ import ray.tune as tune  # Import the missing package
 from ray.tune.search.optuna import OptunaSearch
 from ray.tune.schedulers import AsyncHyperBandScheduler
 from ray.tune.search.basic_variant import BasicVariantGenerator
-
 from ..algorithms.qreps import tune_elbe, tune_saddle
-
 
 
 config_ray = {
@@ -166,7 +164,6 @@ config_elbe = {
     "num_iterations": 0,
     "num_steps": 0,
 }
-
 
 
 if "__main__" == __name__:

@@ -2,21 +2,17 @@ import os
 import sys
 import random
 import csv
-import logging
 import numpy as np
-import matplotlib.pyplot as plt
 import pandas as pd
 import time
 import multiprocessing
-from multiprocessing import Pool
 from algorithms import tune_saddle
 
-config_elbe = {}
-def create_samples(n=10):
+def create_samples(config, n=10):
     samples = []
     for i in range(n):
         sample = {"index": i + 1} 
-        for key, value in config_elbe.items():
+        for key, value in config.items():
             if isinstance(value, list):
                 sample[key] = random.choice(value)
             else:
@@ -71,7 +67,6 @@ def run_config(args):
 
     config['seed'] = seed   
     config['save_learning_curve'] = True
-    # if not isinstance(config["eta"], float):
     config['eta'] = None
 
     return tune_saddle(config), row['index']
@@ -84,7 +79,7 @@ if __name__ == '__main__':
 
     current_dir = os.getcwd()
     num_seeds = 3
-    df = pd.read_csv(current_dir + f'/ray_tune/{prefix}.csv')
+    df = pd.read_csv(current_dir + f'{prefix}.csv')
     
     row= df.iloc[row_index]
 

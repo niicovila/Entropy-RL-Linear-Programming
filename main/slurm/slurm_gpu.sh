@@ -72,4 +72,4 @@ for ((i = 1; i <= worker_num; i++)); do
     sleep 5
 done
 
-poetry run python -u ../tuning/tune.py "$SLURM_CPUS_PER_TASK"
+poetry run python -u tuning/tune.py "$SLURM_CPUS_PER_TASK"

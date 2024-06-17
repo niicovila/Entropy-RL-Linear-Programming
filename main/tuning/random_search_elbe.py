@@ -2,86 +2,17 @@ import os
 import sys
 import random
 import csv
-import logging
 import numpy as np
-import matplotlib.pyplot as plt
 import pandas as pd
 import time
 import multiprocessing
-from multiprocessing import Pool
 from algorithms import tune_elbe
 
-config_elbe = {
-    "exp_name": "QREPS",
-    "seed": 0,
-    "torch_deterministic": True,
-    "cuda": True,
-    "track": False,
-    "wandb_project_name": "CC",
-    "wandb_entity": None,
-    "capture_video": False,
-
-    "env_id": "LunarLander-v2",
-
-    # Algorithm
-    "total_timesteps": 100000,
-    "num_envs": 32,
-    "gamma": 0.99,
-
-    "total_iterations": [512, 1024, 2048, 4096],
-    "num_minibatches": [4, 8, 16, 32, 64],
-    "update_epochs": [10, 25, 50, 100, 150, 300],
-
-    "alpha": [2, 4, 8, 12, 32, 64, 100],  
-    "eta": None,  
-
-    # Learning rates
-    "policy_lr": [3e-05, 0.0001, 0.00025, 0.0003, 0.001, 0.003],
-    "q_lr": [3e-05, 0.0001, 0.00025, 0.0003, 0.001, 0.003],
-    "anneal_lr": [True, False],
-
-    # Layer Init
-    "layer_init":  "kaiming_uniform",
-
-    # Architecture
-    "policy_activation": "Tanh",
-    "num_hidden_layers": 2,
-    "hidden_size": 128,
-    "actor_last_layer_std": 0.01,
-
-    "q_activation": "Tanh",
-    "q_num_hidden_layers": 4,
-    "q_hidden_size": 128,
-    "q_last_layer_std": 1.0,
-    "use_policy": True,
-
-    # Optimization
-    "q_optimizer": ["Adam", "SGD", "RMSprop"],
-    "actor_optimizer": ["Adam", "SGD", "RMSprop"],
-    "eps": 1e-8,
-
-    # Options
-    "average_critics": [True, False],
-    "normalize_delta": False,
-    "use_kl_loss": True,
-    "q_histogram": False,
-    "gae": False,
-    "gae_lambda": 0.95,
-
-    "target_network": False,
-    "tau": 1.0,
-    "target_network_frequency": 0, 
-
-    "minibatch_size": 0,
-    "num_iterations": 0,
-    "num_steps": 0,
-}
-
-def create_samples(n=10):
+def create_samples(config, n=10):
     samples = []
     for i in range(n):
         sample = {"index": i + 1} 
-        for key, value in config_elbe.items():
+        for key, value in config.items():
             if isinstance(value, list):
                 sample[key] = random.choice(value)
             else:
@@ -137,10 +68,12 @@ def run_config(args):
 
     config['seed'] = seed   
     config['save_learning_curve'] = True
-    # print(config["eta"])
-    # if not isinstance(config["eta"], float):
-    #     print(config["eta"])
-    config['eta'] = None
+    config['eta'] = None # comment this when testing different values for alpha and eta
+    # options    
+    config['track'] = True
+    config['wandb_entity'] = None
+    config['capture_video'] = True
+    config['total_timesteps'] = 100000
 
     return tune_elbe(config), row['index']
 
@@ -152,7 +85,7 @@ if __name__ == '__main__':
 
     current_dir = os.getcwd()
     num_seeds = 3
-    df = pd.read_csv(current_dir + f'/ray_tune/{prefix}.csv')
+    df = pd.read_csv(current_dir + f'{prefix}.csv')
     
     row= df.iloc[row_index]
 

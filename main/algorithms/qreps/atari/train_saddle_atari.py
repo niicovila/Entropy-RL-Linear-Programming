@@ -42,7 +42,6 @@ def make_env(env_id, idx, capture_video, run_name):
 
     return thunk
 
-
 def tune_saddle_atari(config):
     import torch
     import torch.optim as optim
