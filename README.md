@@ -1,7 +1,7 @@
 # Entropy-RL-Linear-Programming
 
 ## About this work
-A study of regularized reinforcement learning algorithms from a Linear Programming framework. Specially studying the implementation of the QREPS algorithm in a large scale setting. Additionally, code for a new primal-dual policy iteration algorithm
+In this work, we aim to investigate the applicability of regularized LP-based RL algorithms. Our objectives include developing a practical implementation of Q-REPS using deep neural networks (DNNs), and understanding the impact of various practical design choices on the algorithm’s final performance through a large-scale empirical study using a slurm cluster. Additionally, we will explore other LP-based approaches beyond Q-REPS.
 
 ## Requirements
 ```bash
