@@ -47,18 +47,27 @@ poetry run python algos/qreps/qreps_main.py \
 #### Episodic Reward Curves
 ![Reference Image](assets/img/comparison.png)
 
-#### Gameplay videos
+### Gameplay videos
 
-
-https://github.com/niicovila/Entropy-RL-Linear-Programming/assets/76247144/8256d71f-38ba-4d07-bb91-8da782640012
-
-
-
-https://github.com/niicovila/Entropy-RL-Linear-Programming/assets/76247144/a9265891-4e8c-4d21-8b05-d527e2d7ae9f
-
-
-
-https://github.com/niicovila/Entropy-RL-Linear-Programming/assets/76247144/d8da50c1-a4c5-4e90-90a0-1181f6c4c1ad
+<table>
+  <tr>
+    <td>
+      <a href="https://github.com/niicovila/Entropy-RL-Linear-Programming/assets/76247144/8256d71f-38ba-4d07-bb91-8da782640012">
+        <img src="https://img.youtube.com/vi/8256d71f-38ba-4d07-bb91-8da782640012/0.jpg" alt="Video 1" style="width:100%">
+      </a>
+    </td>
+    <td>
+      <a href="https://github.com/niicovila/Entropy-RL-Linear-Programming/assets/76247144/a9265891-4e8c-4d21-8b05-d527e2d7ae9f">
+        <img src="https://img.youtube.com/vi/a9265891-4e8c-4d21-8b05-d527e2d7ae9f/0.jpg" alt="Video 2" style="width:100%">
+      </a>
+    </td>
+    <td>
+      <a href="https://github.com/niicovila/Entropy-RL-Linear-Programming/assets/76247144/d8da50c1-a4c5-4e90-90a0-1181f6c4c1ad">
+        <img src="https://img.youtube.com/vi/d8da50c1-a4c5-4e90-90a0-1181f6c4c1ad/0.jpg" alt="Video 3" style="width:100%">
+      </a>
+    </td>
+  </tr>
+</table>
 
 
 ### Slurm
