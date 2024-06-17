@@ -49,10 +49,6 @@ poetry run python algos/qreps/qreps_main.py \
 
 ### Gameplay videos
 
-### Gameplay videos
-
-### Gameplay videos
-
 <table>
   <tr>
     <td>
