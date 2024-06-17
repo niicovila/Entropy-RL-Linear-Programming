@@ -1,7 +1,7 @@
 # Entropy-RL-Linear-Programming
 
 ## About this work
-In this work, we aim to investigate the applicability of regularized LP-based RL algorithms. Our objectives include developing a practical implementation of Q-REPS using deep neural networks (DNNs), and understanding the impact of various practical design choices on the algorithm’s final performance through a large-scale empirical study using a slurm cluster. Additionally, we will explore other LP-based approaches beyond Q-REPS.
+In this work, we aim to investigate the applicability of regularized LP-based RL algorithms. Our objectives include developing a practical implementation of Q-REPS using deep neural networks (DNNs), and understanding the impact of various practical design choices on the algorithm’s final performance through a large-scale empirical study using a slurm cluster. Additionally, we explore a novel primal-dual policy iteration algorithm.
 
 ## Requirements
 ```bash
