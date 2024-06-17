@@ -49,6 +49,18 @@ poetry run python algos/qreps/qreps_main.py \
 
 #### Gameplay videos
 
+
+https://github.com/niicovila/Entropy-RL-Linear-Programming/assets/76247144/8256d71f-38ba-4d07-bb91-8da782640012
+
+
+
+https://github.com/niicovila/Entropy-RL-Linear-Programming/assets/76247144/a9265891-4e8c-4d21-8b05-d527e2d7ae9f
+
+
+
+https://github.com/niicovila/Entropy-RL-Linear-Programming/assets/76247144/d8da50c1-a4c5-4e90-90a0-1181f6c4c1ad
+
+
 ### Slurm
 We provide slurm files to submit jobs to a remote cluster in order to run the large scale experiments defined in this work. We provide both files to run array jobs of different parameter configurations, as well as a slurm job to create a Ray cluster, and perform hyperparameter optimization with HEBO or Optuna to find an optimal set of hyperparameters.
 
