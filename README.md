@@ -63,7 +63,9 @@ poetry run python algos/qreps/qreps_main.py \
   </tr>
 </table>
 
-
+### Continuous Environments extension
+- HalfCheetah-v4
+<img width="1390" alt="Screenshot 2024-06-21 at 14 17 23" src="https://github.com/niicovila/Entropy-RL-Linear-Programming/assets/76247144/da332a9e-3f5b-4979-a5c7-e4b365b171d2">
 
 
 ### Slurm
